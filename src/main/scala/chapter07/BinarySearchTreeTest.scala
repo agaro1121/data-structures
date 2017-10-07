@@ -57,4 +57,9 @@ object BinarySearchTreeTest extends App {
   bst.iterator.foreach(print)
 
   println()
+  println()
+
+  println(bst.getIterator(BinarySearchTreeInterface.Preorder).toList.foldLeft("")(_ + _))
+  println(bst.getIterator(BinarySearchTreeInterface.Inorder).toList.foldLeft("")(_ + _))
+  println(bst.getIterator(BinarySearchTreeInterface.Postorder).toList.foldLeft("")(_ + _))
 }

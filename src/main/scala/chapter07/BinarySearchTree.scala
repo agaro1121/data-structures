@@ -62,7 +62,7 @@ class BinarySearchTree[T](protected val comparator: Comparator[T] = new Comparat
       postOrder(n.left, queue)
       postOrder(n.right, queue)
       queue.enqueue(n.info)
-      queue //TODO: Does this work ???
+      queue
 
   }
 
