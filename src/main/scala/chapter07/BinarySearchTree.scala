@@ -6,13 +6,14 @@ import chapter04.{LinkedQueue, QueueInterface}
 
 import scala.annotation.tailrec
 
-case class BSTNode[T](info: T, left: BSTNode[T], right: BSTNode[T])
+case class BSTNode[T](info: T, left: BSTNode[T] = null, right: BSTNode[T] = null)
 
-class BinarySearchTree[T](protected val comparator: Comparator[T] =
-                            (o1: T, o2: T) => { o1.asInstanceOf[Comparable[T]].compareTo(o2) }
-                         ) extends BinarySearchTreeInterface[T] {
+class BinarySearchTree[T](protected val comparator: Comparator[T] = new Comparator[T] {
+  override def compare(o1: T, o2: T): Int = {
+    o1.asInstanceOf[Comparable[T]].compareTo(o2)
+  }}) extends BinarySearchTreeInterface[T] {
 
-  protected val root: BSTNode[T] = ???
+  protected var root: BSTNode[T] = _
 
   protected var found: Boolean = _
 
@@ -86,7 +87,20 @@ class BinarySearchTree[T](protected val comparator: Comparator[T] =
     }
   }
 
-  override def add(element: T) = ???
+  override def add(element: T) = {
+
+    def loop(node: BSTNode[T]): BSTNode[T] = {
+      if(node == null)
+        BSTNode(element, null, null)
+      else if(comparator.compare(element, node.info) <= 0)
+        node.copy(left = loop(node.left))
+      else node.copy(right = loop(node.right))
+    }
+
+
+    root = loop(root)
+    true
+  }
 
   override def get(target: T) = {
     @tailrec
@@ -104,11 +118,43 @@ class BinarySearchTree[T](protected val comparator: Comparator[T] =
 
   override def contains(target: T) = get(target).isDefined
 
-  override def remove(target: T) = ???
+  override def remove(target: T) = {
+    root = recRemove(target, root)
+    root != null
+  }
+
+  private def recRemove(target: T, node: BSTNode[T]): BSTNode[T] = {
+    if(node == null) null
+    else if(comparator.compare(target, node.info) <= 0)
+      node.copy(left = recRemove(target, node.left))
+    else if(comparator.compare(target, node.info) > 0)
+      node.copy(right = recRemove(target, node.right))
+    else {
+      removeNode(node)
+    }
+  }
+
+  private def removeNode(node: BSTNode[T]): BSTNode[T] = {
+    if(node.left == null) node.right
+    else if(node.right == null) node.left
+    else {
+      val t = getPredecessor(node.left)
+      node.copy(info = t, left = recRemove(t, node.left))
+    }
+  }
+
+  private def getPredecessor(node: BSTNode[T]): T = {
+    var temp = node
+
+    while(temp.right != null)
+      temp = temp.right
+
+    temp.info
+  }
 
   override def isFull = false
 
   override def isEmpty: Boolean = root == null
 
-  override def iterator = ???
+  override def iterator = getIterator(orderType = BinarySearchTreeInterface.Inorder)
 }
