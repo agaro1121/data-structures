@@ -59,7 +59,7 @@ object BinarySearchTreeTest extends App {
   println()
   println()
 
-  println(bst.getIterator(BinarySearchTreeInterface.Preorder).toList.foldLeft("")(_ + _))
-  println(bst.getIterator(BinarySearchTreeInterface.Inorder).toList.foldLeft("")(_ + _))
-  println(bst.getIterator(BinarySearchTreeInterface.Postorder).toList.foldLeft("")(_ + _))
+  println(bst.getIterator(BinarySearchTreeInterface.Preorder).toList.foldLeft("")(_ + _) == "PFBHGSRYTWZ")
+  println(bst.getIterator(BinarySearchTreeInterface.Inorder).toList.foldLeft("")(_ + _) == "BFGHPRSTWYZ")
+  println(bst.getIterator(BinarySearchTreeInterface.Postorder).toList.foldLeft("")(_ + _) == "BGHFRWTZYSP")
 }

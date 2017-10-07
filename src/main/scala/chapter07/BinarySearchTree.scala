@@ -1,14 +1,12 @@
 package chapter07
 
-import java.util.Comparator
 import chapter04.{LinkedQueue, QueueInterface}
 
 case class BSTNode[T](info: T, left: Option[BSTNode[T]] = None, right: Option[BSTNode[T]] = None)
 
-class BinarySearchTree[T](protected val comparator: Comparator[T] = new Comparator[T] {
-  override def compare(o1: T, o2: T): Int = {
-    o1.asInstanceOf[Comparable[T]].compareTo(o2)
-  }}) extends BinarySearchTreeInterface[T] {
+
+  class BinarySearchTree[T](implicit protected val comparator: Ordering[T])
+    extends BinarySearchTreeInterface[T] {
 
   protected var root: Option[BSTNode[T]] = None
 
@@ -122,17 +120,15 @@ class BinarySearchTree[T](protected val comparator: Comparator[T] = new Comparat
     root.isDefined
   }
 
-  private def recRemove(target: T, node: Option[BSTNode[T]]): Option[BSTNode[T]] = {
-    node.flatMap{ n =>
-      if(comparator.compare(target, n.info) < 0)
-        Some(n.copy(left = recRemove(target, node.flatMap(_.left))))
-      else if(comparator.compare(target, n.info) > 0)
-        Some(n.copy(right = recRemove(target, node.flatMap(_.right))))
-      else {
-        removeNode(node)
-      }
-    }
+  private def recRemove(target: T, node: Option[BSTNode[T]]): Option[BSTNode[T]] = node match {
 
+    case Some(n) if comparator.compare(target, n.info) < 0 =>
+        Some(n.copy(left = recRemove(target, node.flatMap(_.left))))
+
+    case Some(n) if comparator.compare(target, n.info) > 0 =>
+        Some(n.copy(right = recRemove(target, node.flatMap(_.right))))
+
+    case _ => removeNode(node)
   }
 
   private def removeNode(node: Option[BSTNode[T]]): Option[BSTNode[T]] = {
