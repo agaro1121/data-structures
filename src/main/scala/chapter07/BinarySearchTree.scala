@@ -1,19 +1,16 @@
 package chapter07
 
 import java.util.Comparator
-
 import chapter04.{LinkedQueue, QueueInterface}
 
-import scala.annotation.tailrec
-
-case class BSTNode[T](info: T, left: BSTNode[T] = null, right: BSTNode[T] = null)
+case class BSTNode[T](info: T, left: Option[BSTNode[T]] = None, right: Option[BSTNode[T]] = None)
 
 class BinarySearchTree[T](protected val comparator: Comparator[T] = new Comparator[T] {
   override def compare(o1: T, o2: T): Int = {
     o1.asInstanceOf[Comparable[T]].compareTo(o2)
   }}) extends BinarySearchTreeInterface[T] {
 
-  protected var root: BSTNode[T] = _
+  protected var root: Option[BSTNode[T]] = None
 
   protected var found: Boolean = _
 
@@ -21,10 +18,10 @@ class BinarySearchTree[T](protected val comparator: Comparator[T] = new Comparat
     if(isEmpty) None
     else {
       var node = root
-      while(node.left != null)
-        node = node.left
+      while(node.get.left.isDefined)
+        node = node.flatMap(_.left)
 
-      Some(node.info)
+      node.map(_.info)
     }
   }
 
@@ -32,40 +29,41 @@ class BinarySearchTree[T](protected val comparator: Comparator[T] = new Comparat
     if(isEmpty) None
     else {
       var node = root
-      while(node.right != null)
-        node = node.right
+      while(node.get.right.isDefined)
+        node = node.flatMap(_.right)
 
-      Some(node.info)
+      node.map(_.info)
     }
   }
 
-  private def inOrder(node: BSTNode[T], queue: QueueInterface[T]): QueueInterface[T] = {
-      if(node == null)
-        queue
-      else {
-        inOrder(node.left, queue)
-        queue.enqueue(node.right.info)
-        inOrder(node.right, queue)
-      }
-  }
-  def preOrder(node: BSTNode[T], queue: QueueInterface[T]): QueueInterface[T] = {
-    if(node == null)
-      queue
-    else {
-      queue.enqueue(node.info)
-      preOrder(node.left, queue)
-      preOrder(node.right, queue)
+  private def inOrder(node: Option[BSTNode[T]], queue: QueueInterface[T]): QueueInterface[T] = {
+    node match {
+      case None => queue
+      case Some(n) =>
+        inOrder(n.left, queue)
+        queue.enqueue(n.info)
+        inOrder(n.right, queue)
     }
   }
-  def postOrder(node: BSTNode[T], queue: QueueInterface[T]): QueueInterface[T] = {
-    if(node == null)
-      queue
-    else {
-      postOrder(node.left, queue)
-      postOrder(node.right, queue)
-      queue.enqueue(node.info)
+
+  def preOrder(node: Option[BSTNode[T]], queue: QueueInterface[T]): QueueInterface[T] = {
+    node match {
+      case None => queue
+      case Some(n) =>
+        queue.enqueue(n.info)
+        preOrder(n.left, queue)
+        preOrder(n.right, queue)
+    }
+  }
+
+  def postOrder(node: Option[BSTNode[T]], queue: QueueInterface[T]): QueueInterface[T] = node match {
+    case None => queue
+    case Some(n) =>
+      postOrder(n.left, queue)
+      postOrder(n.right, queue)
+      queue.enqueue(n.info)
       queue //TODO: Does this work ???
-    }
+
   }
 
   override def getIterator(orderType: BinarySearchTreeInterface.Traversal) = {
@@ -89,28 +87,29 @@ class BinarySearchTree[T](protected val comparator: Comparator[T] = new Comparat
 
   override def add(element: T) = {
 
-    def loop(node: BSTNode[T]): BSTNode[T] = {
-      if(node == null)
-        BSTNode(element, null, null)
-      else if(comparator.compare(element, node.info) <= 0)
-        node.copy(left = loop(node.left))
-      else node.copy(right = loop(node.right))
+    def loop(node: Option[BSTNode[T]]): BSTNode[T] = node match {
+      case None => BSTNode(element)
+      case Some(n) if comparator.compare(element, n.info) <= 0 =>
+        n.copy(left = Some(loop(n.left)))
+      case Some(n) =>  n.copy(right = Some(loop(n.right)))
     }
 
 
-    root = loop(root)
+    val n  = loop(root)
+    root = Some(n)
     true
   }
 
   override def get(target: T) = {
-    @tailrec
-    def loop(node: BSTNode[T]): Option[T] = {
-      if(node == null) None
-      else if(comparator.compare(target, node.info) < 0)
-        loop(node.left)
-      else if(comparator.compare(target, node.info) > 0)
-        loop(node.right)
-      else Some(node.info)
+
+    def loop(node: Option[BSTNode[T]]): Option[T] = {
+      node.flatMap { n =>
+        if (comparator.compare(target, n.info) < 0)
+          loop(n.left)
+        else if (comparator.compare(target, n.info) > 0)
+          loop(n.right)
+        else Some(n.info)
+      }
     }
 
     loop(root)
@@ -118,43 +117,52 @@ class BinarySearchTree[T](protected val comparator: Comparator[T] = new Comparat
 
   override def contains(target: T) = get(target).isDefined
 
+  //FIXME !!!!!
   override def remove(target: T) = {
     root = recRemove(target, root)
-    root != null
+    root.isDefined
   }
 
-  private def recRemove(target: T, node: BSTNode[T]): BSTNode[T] = {
-    if(node == null) null
-    else if(comparator.compare(target, node.info) <= 0)
-      node.copy(left = recRemove(target, node.left))
-    else if(comparator.compare(target, node.info) > 0)
-      node.copy(right = recRemove(target, node.right))
-    else {
-      removeNode(node)
+  private def recRemove(target: T, node: Option[BSTNode[T]]): Option[BSTNode[T]] = {
+    node.flatMap{ n =>
+      if(comparator.compare(target, n.info) <= 0)
+        Some(n.copy(left = recRemove(target, node.flatMap(_.left))))
+      else if(comparator.compare(target, n.info) > 0)
+        Some(n.copy(right = recRemove(target, node.flatMap(_.right))))
+      else {
+        removeNode(node)
+      }
+    }
+
+  }
+
+  private def removeNode(node: Option[BSTNode[T]]): Option[BSTNode[T]] = {
+    node.flatMap{ n =>
+      if(n.left.isEmpty) n.right
+      else if(n.right.isEmpty) n.left
+      else {
+        val tt = getPredecessor(n.left)
+        tt.map{ t =>
+          n.copy(info = t, left = recRemove(t, n.left))
+        }
+      }
     }
   }
 
-  private def removeNode(node: BSTNode[T]): BSTNode[T] = {
-    if(node.left == null) node.right
-    else if(node.right == null) node.left
-    else {
-      val t = getPredecessor(node.left)
-      node.copy(info = t, left = recRemove(t, node.left))
-    }
-  }
-
-  private def getPredecessor(node: BSTNode[T]): T = {
+  private def getPredecessor(node: Option[BSTNode[T]]): Option[T] = {
     var temp = node
 
-    while(temp.right != null)
-      temp = temp.right
+    val right = temp.flatMap(_.right)
 
-    temp.info
+    while(right.isDefined)
+      temp = right
+
+    temp.map(_.info)
   }
 
   override def isFull = false
 
-  override def isEmpty: Boolean = root == null
+  override def isEmpty: Boolean = root.isEmpty
 
   override def iterator = getIterator(orderType = BinarySearchTreeInterface.Inorder)
 }
