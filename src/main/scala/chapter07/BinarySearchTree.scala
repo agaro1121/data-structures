@@ -117,7 +117,6 @@ class BinarySearchTree[T](protected val comparator: Comparator[T] = new Comparat
 
   override def contains(target: T) = get(target).isDefined
 
-  //FIXME !!!!!
   override def remove(target: T) = {
     root = recRemove(target, root)
     root.isDefined
@@ -125,7 +124,7 @@ class BinarySearchTree[T](protected val comparator: Comparator[T] = new Comparat
 
   private def recRemove(target: T, node: Option[BSTNode[T]]): Option[BSTNode[T]] = {
     node.flatMap{ n =>
-      if(comparator.compare(target, n.info) <= 0)
+      if(comparator.compare(target, n.info) < 0)
         Some(n.copy(left = recRemove(target, node.flatMap(_.left))))
       else if(comparator.compare(target, n.info) > 0)
         Some(n.copy(right = recRemove(target, node.flatMap(_.right))))
